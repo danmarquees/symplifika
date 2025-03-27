@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Symplifika",
+  "version": "1.0",
+  "description": "Expansor de texto e autopreenchimento com IA.",
+  "permissions": ["activeTab", "storage", "scripting", "<all_urls>"],
+  "action": {
+    "default_popup": "index.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["index.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
