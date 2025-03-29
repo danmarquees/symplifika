@@ -6,7 +6,6 @@ const prisma = new PrismaClient();
 export const syncData = async (req, res) => {
   try {
     const { shortcuts, categories, lastSyncedAt } = req.body;
-    const userId = req.userId;
 
     // Implementar a lógica para criar/atualizar atalhos
     for (const shortcutData of shortcuts) {
@@ -15,8 +14,8 @@ export const syncData = async (req, res) => {
       if (id) {
         // Atualizar atalho existente
         await prisma.shortcut.update({
-          where: { id: parseInt(id) },
-          data: { ...rest, userId: req.userId },
+          where: { id: parseInt(id), userId: req.userId },
+          data: { ...rest },
         });
       } else {
         // Criar novo atalho

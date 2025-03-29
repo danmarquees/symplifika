@@ -1,23 +1,21 @@
-const express = require("express");
-const {
+import express from "express";
+import {
   register,
   login,
-  getMe,
   logout,
   forgotPassword,
   resetPassword,
-  updateProfile, // Import the new controller function
-} = require("../controllers/authController");
-const { verifyToken } = require("../middleware/authMiddleware");
+} from "../controllers/authController.js";
+import csrf from "csurf";
+// Import the validation middleware
+import { validateRegister } from "../middleware/validationMiddleware.js";
 
 const router = express.Router();
-
-router.post("/register", register);
+const csrfProtection = csrf({ cookie: true });
+router.post("/register", validateRegister, register); // Aplicar validateRegister aqui
 router.post("/login", login);
-router.get("/me", verifyToken, getMe);
-router.post("/logout", verifyToken, logout);
+router.post("/logout", logout);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password/:token", resetPassword);
-router.put("/profile", verifyToken, updateProfile); // Add update profile route
 
-module.exports = router;
+export default router;

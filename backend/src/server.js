@@ -14,13 +14,7 @@ import csrf from "csurf";
 import rateLimit from "express-rate-limit";
 import errorHandler from "./middleware/errorHandler.js";
 import firebaseAuthRoutes from "./routes/firebaseAuthRoutes.js";
-import {
-  validateShortcut,
-  validateCategory,
-  validateTag,
-} from "./middleware/validationMiddleware.js";
 import { WebSocketServer } from "ws"; // Import WebSocketServer
-import { verifyToken } from "./middleware/authMiddleware.js";
 
 dotenv.config();
 
@@ -77,7 +71,7 @@ app.use("/api/tags", csrfProtection, tagRoutes);
 app.use("/api/sync", csrfProtection, syncRoutes);
 
 // Usar a rota do Firebase
-app.use("/api/firebaseAuth", firebaseAuthRoutes);
+//app.use("/api/firebaseAuth", firebaseAuthRoutes);
 
 // Usar as rotas de estatísticas
 app.use("/api/stats", statsRoutes);

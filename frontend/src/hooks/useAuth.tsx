@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { authService } from "../services/auth";
 import api from "../services/api"; // Importe a instância do Axios configurada
+import { useError } from "@/context/ErrorContext";
 
 interface User {
   id: string;
   name: string;
   email: string;
+  bio?: string;
 }
 
 interface AuthState {
@@ -19,6 +21,7 @@ export const useAuth = () => {
     token: null,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const { setError } = useError(); // Using ErrorContext
 
   const checkAuth = async () => {
     try {
@@ -30,13 +33,14 @@ export const useAuth = () => {
           setAuthState({ user, token });
         } catch (error: any) {
           console.error("Invalid token:", error);
+          setError("Sessão expirada. Por favor, faça login novamente.");
           localStorage.removeItem("token");
           delete api.defaults.headers.common["Authorization"];
           setAuthState({ user: null, token: null });
         }
       }
     } catch (error) {
-      console.error("checkAuth Error");
+      console.error("checkAuth Error", error);
     } finally {
       setIsLoading(false);
     }
@@ -47,13 +51,17 @@ export const useAuth = () => {
   }, []);
 
   const login = async (email: string, password: string) => {
+    setError(null); // Clear any previous errors
     try {
       const response = await authService.login({ email, password });
       localStorage.setItem("token", response.token);
+      localStorage.setItem("user", JSON.stringify(response.user));
       api.defaults.headers.common["Authorization"] = `Bearer ${response.token}`;
       setAuthState({ user: response.user, token: response.token });
-    } catch (error) {
+      return response.user; // Return the user object on successful login
+    } catch (error: any) {
       console.error("Login failed:", error);
+      setError(error.message || "Credenciais inválidas.");
       throw error;
     }
   };
@@ -63,13 +71,18 @@ export const useAuth = () => {
     email: string;
     password: string;
   }) => {
+    setError(null); // Clear any previous errors
+
     try {
       const response = await authService.register(userData);
       localStorage.setItem("token", response.token);
+      localStorage.setItem("user", JSON.stringify(response.user));
       api.defaults.headers.common["Authorization"] = `Bearer ${response.token}`;
       setAuthState({ user: response.user, token: response.token });
-    } catch (error) {
+      return response.user; // Return the user object on successful registration
+    } catch (error: any) {
       console.error("Registration failed:", error);
+      setError(error.message || "Erro ao criar a conta.");
       throw error;
     }
   };
@@ -77,8 +90,12 @@ export const useAuth = () => {
   const logout = async () => {
     try {
       await authService.logout();
+    } catch (error: any) {
+      console.error("Logout failed:", error);
+      setError(error.message || "Erro ao fazer logout.");
     } finally {
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
       delete api.defaults.headers.common["Authorization"];
       setAuthState({ user: null, token: null });
     }

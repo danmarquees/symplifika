@@ -1,8 +1,8 @@
-const express = require("express");
-const { generateText } = require("../controllers/openaiController");
+import express from "express";
+import { generateText } from "../controllers/openaiController.js";
 
 const router = express.Router();
 
 router.post("/generate", generateText);
 
-module.exports = router;
+export default router;

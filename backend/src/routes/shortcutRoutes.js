@@ -7,13 +7,13 @@ import {
   updateShortcut,
   deleteShortcut,
 } from "../controllers/shortcutController.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { verifyToken, protect } from "../middleware/authMiddleware.js";
 import { validateShortcut } from "../middleware/validationMiddleware.js";
 
-router.get("/", verifyToken, getAllShortcuts);
-router.get("/:id", verifyToken, getShortcutById);
-router.post("/", verifyToken, validateShortcut, createShortcut); // Added validateShortcut
-router.put("/:id", verifyToken, validateShortcut, updateShortcut); // Added validateShortcut
-router.delete("/:id", verifyToken, deleteShortcut);
+router.get("/", protect, getAllShortcuts);
+router.get("/:id", protect, getShortcutById);
+router.post("/", protect, validateShortcut, createShortcut);
+router.put("/:id", protect, validateShortcut, updateShortcut);
+router.delete("/:id", protect, deleteShortcut);
 
 export default router;

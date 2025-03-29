@@ -1,20 +1,11 @@
 import { PrismaClient } from "@prisma/client";
-import { WebSocketServer } from "ws";
-
 const prisma = new PrismaClient();
-
-// Function to notify clients about changes
-function broadcast(wss, event, data) {
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocketServer.OPEN) {
-      client.send(JSON.stringify({ event, data }));
-    }
-  });
-}
 
 export const getAllShortcuts = async (req, res) => {
   try {
-    const shortcuts = await prisma.shortcut.findMany();
+    const shortcuts = await prisma.shortcut.findMany({
+      where: { userId: req.userId },
+    });
     res.json(shortcuts);
   } catch (error) {
     console.error(error);
@@ -27,7 +18,7 @@ export const getShortcutById = async (req, res) => {
   try {
     const { id } = req.params;
     const shortcut = await prisma.shortcut.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id), userId: req.userId }, // Only get shortcuts belonging to current user
     });
     if (!shortcut) {
       return res.status(404).json({ msg: "Atalho não encontrado" });
@@ -44,8 +35,6 @@ export const createShortcut = async (req, res) => {
     const shortcut = await prisma.shortcut.create({
       data: { ...req.body, userId: req.userId },
     });
-    // Broadcast the new shortcut
-    broadcast(req.app.get("wss"), "shortcutCreated", shortcut);
     res.status(201).json(shortcut);
   } catch (error) {
     console.error(error);
@@ -58,7 +47,7 @@ export const updateShortcut = async (req, res) => {
   try {
     const { id } = req.params;
     const shortcut = await prisma.shortcut.update({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id), userId: req.userId },
       data: req.body,
     });
     res.json(shortcut);
@@ -73,7 +62,7 @@ export const deleteShortcut = async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.shortcut.delete({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id), userId: req.userId }, // Only delete shortcuts belonging to current user
     });
     res.json({ msg: "Atalho deletado" });
   } catch (error) {
