@@ -1,7 +1,17 @@
 import { PrismaClient } from "@prisma/client";
+import { WebSocketServer } from "ws";
+
 const prisma = new PrismaClient();
 
-// GET all shortcuts
+// Function to notify clients about changes
+function broadcast(wss, event, data) {
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocketServer.OPEN) {
+      client.send(JSON.stringify({ event, data }));
+    }
+  });
+}
+
 export const getAllShortcuts = async (req, res) => {
   try {
     const shortcuts = await prisma.shortcut.findMany();
@@ -29,12 +39,13 @@ export const getShortcutById = async (req, res) => {
   }
 };
 
-// POST a new shortcut
 export const createShortcut = async (req, res) => {
   try {
     const shortcut = await prisma.shortcut.create({
-      data: req.body,
+      data: { ...req.body, userId: req.userId },
     });
+    // Broadcast the new shortcut
+    broadcast(req.app.get("wss"), "shortcutCreated", shortcut);
     res.status(201).json(shortcut);
   } catch (error) {
     console.error(error);

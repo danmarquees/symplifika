@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import * as reactRouterDom from "react-router-dom";
 import Dashboard from "./components/features/Dashboard/Dashboard";
 import TextExpansionManager from "./components/features/TextExpansion/TextExpansionManager";
@@ -12,14 +12,18 @@ import SettingsDashboard from "./components/features/Settings/SettingsDashboard"
 import ProfileDashboard from "./components/features/Profile/ProfileDashboard";
 import Login from "./components/pages/Login";
 import Register from "./components/pages/Register";
-import ForgotPassword from "./components/pages/ForgotPassword"; //Missing semicolon here
-import ResetPassword from "./components/pages/ResetPassword"; //Missing semicolon here
-import AuthLayout from "./layouts/AuthLayout"; //Missing semicolon here
+import ForgotPassword from "./components/pages/ForgotPassword";
+import ResetPassword from "./components/pages/ResetPassword";
+import AuthLayout from "./layouts/AuthLayout";
 import { useAuth } from "./hooks/useAuth";
 
 const App: React.FC = () => {
-  const { isAuthenticated } = useAuth();
-  //const isAuthenticated = true; // force autentication
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Render loading indicator while checking authentication
+  if (isLoading) {
+    return <div>Carregando...</div>;
+  }
 
   return (
     <reactRouterDom.BrowserRouter>
@@ -61,14 +65,14 @@ const App: React.FC = () => {
               }
             />
 
-            {/* Redirecionamento para Dashboard */}
+            {/* Rota de redirecionamento condicional */}
             <reactRouterDom.Route
               path="/"
               element={
                 isAuthenticated ? (
                   <Dashboard />
                 ) : (
-                  <reactRouterDom.Navigate to="/login" />
+                  <reactRouterDom.Navigate to="/login" replace />
                 )
               }
             />
@@ -80,7 +84,7 @@ const App: React.FC = () => {
                 isAuthenticated ? (
                   <TextExpansionManager />
                 ) : (
-                  <reactRouterDom.Navigate to="/login" />
+                  <reactRouterDom.Navigate to="/login" replace />
                 )
               }
             />
@@ -90,7 +94,7 @@ const App: React.FC = () => {
                 isAuthenticated ? (
                   <NewShortcut />
                 ) : (
-                  <reactRouterDom.Navigate to="/login" />
+                  <reactRouterDom.Navigate to="/login" replace />
                 )
               }
             />
@@ -100,7 +104,7 @@ const App: React.FC = () => {
                 isAuthenticated ? (
                   <CategoryManager />
                 ) : (
-                  <reactRouterDom.Navigate to="/login" />
+                  <reactRouterDom.Navigate to="/login" replace />
                 )
               }
             />
@@ -110,18 +114,27 @@ const App: React.FC = () => {
                 isAuthenticated ? (
                   <ImportExportManager />
                 ) : (
-                  <reactRouterDom.Navigate to="/login" />
+                  <reactRouterDom.Navigate to="/login" replace />
                 )
               }
             />
-            <reactRouterDom.Route path="/stats" element={<StatsDashboard />} />
+            <reactRouterDom.Route
+              path="/stats"
+              element={
+                isAuthenticated ? (
+                  <StatsDashboard />
+                ) : (
+                  <reactRouterDom.Navigate to="/login" replace />
+                )
+              }
+            />
             <reactRouterDom.Route
               path="/profile"
               element={
                 isAuthenticated ? (
                   <ProfileDashboard />
                 ) : (
-                  <reactRouterDom.Navigate to="/login" />
+                  <reactRouterDom.Navigate to="/login" replace />
                 )
               }
             />

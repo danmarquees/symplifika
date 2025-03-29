@@ -18,24 +18,31 @@ export const useAuth = () => {
     user: null,
     token: null,
   });
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const token = await chrome.storage.sync.get(["token"]);
+  const checkAuth = async () => {
+    try {
+      const token = localStorage.getItem("token");
       if (token) {
-        api.defaults.headers.common["Authorization"] = `Bearer ${token.token}`; //Definir token nos headers das requisições
+        api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         try {
           const user = await authService.getMe();
-          setAuthState({ user, token: token.token });
+          setAuthState({ user, token });
         } catch (error: any) {
           console.error("Invalid token:", error);
-          chrome.storage.sync.remove(["token"]);
+          localStorage.removeItem("token");
           delete api.defaults.headers.common["Authorization"];
           setAuthState({ user: null, token: null });
         }
       }
-    };
+    } catch (error) {
+      console.error("checkAuth Error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     checkAuth();
   }, []);
 
@@ -44,8 +51,6 @@ export const useAuth = () => {
       const response = await authService.login({ email, password });
       localStorage.setItem("token", response.token);
       api.defaults.headers.common["Authorization"] = `Bearer ${response.token}`;
-      chrome.storage.sync.set({ token: response.token });
-
       setAuthState({ user: response.user, token: response.token });
     } catch (error) {
       console.error("Login failed:", error);
@@ -62,7 +67,6 @@ export const useAuth = () => {
       const response = await authService.register(userData);
       localStorage.setItem("token", response.token);
       api.defaults.headers.common["Authorization"] = `Bearer ${response.token}`;
-      chrome.storage.sync.set({ token: response.token });
       setAuthState({ user: response.user, token: response.token });
     } catch (error) {
       console.error("Registration failed:", error);
@@ -77,7 +81,6 @@ export const useAuth = () => {
       localStorage.removeItem("token");
       delete api.defaults.headers.common["Authorization"];
       setAuthState({ user: null, token: null });
-      chrome.storage.sync.remove(["token"]);
     }
   };
 
@@ -88,5 +91,6 @@ export const useAuth = () => {
     register,
     logout,
     isAuthenticated: !!authState.token,
+    isLoading,
   };
 };

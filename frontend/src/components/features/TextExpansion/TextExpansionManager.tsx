@@ -13,12 +13,19 @@ import { cn } from "@/lib/utils";
 import ImportExport from "./ImportExport";
 import SyncManager from "./SyncManager";
 import UsageHistory from "./UsageHistory";
-import ShortcutStats from "./ShortcutStats";
 import OpenAIForm from "./OpenAIForm"; // Import OpenAIForm
+import { shortcutsService } from "@/services/shortcuts";
+import useWebSocket from "@/hooks/useWebSocket"; // Importe o hook WebSocket
 
 const TextExpansionManager: React.FC = () => {
-  const { shortcuts, addShortcut, removeShortcut, increaseUsageCount } =
-    useShortcutsStore();
+  const {
+    shortcuts,
+    addShortcut,
+    updateShortcut,
+    removeShortcut,
+    increaseUsageCount,
+    setShortcuts,
+  } = useShortcutsStore();
   const { categories } = useCategoryStore();
   const { popularTags } = useTagStore();
   const [newShortcut, setNewShortcut] = useState<Partial<Shortcut>>({
@@ -65,11 +72,25 @@ const TextExpansionManager: React.FC = () => {
     }));
   };
 
-  const handleAddShortcut = () => {
+  const handleAddShortcut = async () => {
     if (newShortcut.trigger && newShortcut.content) {
-      addShortcut(newShortcut as Shortcut);
+      await shortcutsService.create(newShortcut as Shortcut);
       setNewShortcut({ variables: [], tags: [] });
+      fetchShortcuts();
     }
+  };
+
+  const handleDeleteShortcut = async (id: string) => {
+    await shortcutsService.delete(id);
+    fetchShortcuts();
+  };
+
+  const handleUpdateShortcut = async (
+    id: string,
+    shortcut: Partial<Shortcut>,
+  ) => {
+    await shortcutsService.update(id, shortcut);
+    fetchShortcuts();
   };
 
   // New function to handle usage of shortcuts
@@ -77,7 +98,13 @@ const TextExpansionManager: React.FC = () => {
     increaseUsageCount(shortcutId);
   };
 
+  const fetchShortcuts = async () => {
+    const data = await shortcutsService.getAll();
+    setShortcuts(data);
+  };
+
   useEffect(() => {
+    fetchShortcuts();
     const textarea = document.querySelector("textarea");
 
     const handleTextareaInput = () => {
@@ -97,13 +124,39 @@ const TextExpansionManager: React.FC = () => {
     return () => {
       textarea?.removeEventListener("input", handleTextareaInput);
     };
-  }, [shortcuts, increaseUsageCount]);
+  }, [increaseUsageCount]);
 
   const [generatedText, setGeneratedText] = useState("");
 
   const handleReceiveText = (text: string) => {
     setGeneratedText(text);
   };
+
+  const wsUrl = "ws://localhost:5000";
+  const { socket } = useWebSocket({
+    url: wsUrl, // Substitua pela URL do WebSocket do seu servidor
+    onMessage: (event) => {
+      const data = JSON.parse(event.data);
+      // Implementar lógica de manipulação das mensagens
+      switch (data.event) {
+        case "shortcutCreated":
+          console.log("Novo atalho recebido:", data.data);
+          setShortcuts((prevShortcuts) => [...prevShortcuts, data.data]);
+          break;
+        case "shortcutUpdated":
+          // Implementar lógica para atualizar um atalho existente
+          break;
+        case "shortcutDeleted":
+          // Implementar lógica para remover um atalho
+          break;
+        default:
+          console.log("Mensagem desconhecida:", data);
+      }
+    },
+    onError: (error) => {
+      console.error("Erro no WebSocket:", error);
+    },
+  });
 
   return (
     <div className="p-6">
@@ -304,7 +357,7 @@ const TextExpansionManager: React.FC = () => {
               </div>
               <Button
                 variant="destructive"
-                onClick={() => removeShortcut(shortcut.id)}
+                onClick={() => handleDeleteShortcut(shortcut.id)}
               >
                 Remover
               </Button>

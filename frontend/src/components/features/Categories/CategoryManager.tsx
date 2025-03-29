@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Category } from "@/types/shortcuts";
 import { useCategoryStore } from "@/store/categoryStore";
+import { categoryService } from "@/services/category"; // Import the category service
 
 interface ColorPickerProps {
   value: string;
@@ -39,17 +40,23 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange }) => {
 };
 
 const CategoryManager: React.FC = () => {
-  const { categories, addCategory, removeCategory, updateCategory } =
-    useCategoryStore();
+  const {
+    categories,
+    addCategory,
+    removeCategory,
+    updateCategory,
+    setCategories,
+  } = useCategoryStore();
   const [newCategory, setNewCategory] = useState<Partial<Category>>({
     color: "#2563eb",
   });
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (newCategory.name) {
-      addCategory(newCategory as Omit<Category, "id">);
+      await categoryService.create(newCategory as Omit<Category, "id">);
       setNewCategory({ color: "#2563eb" });
+      fetchCategories();
     }
   };
 
@@ -61,13 +68,33 @@ const CategoryManager: React.FC = () => {
     setEditingCategory(null);
   };
 
-  const handleUpdateCategory = (
+  const handleUpdateCategory = async (
     category: Category,
     updatedCategory: Partial<Category>,
   ) => {
-    updateCategory(category.id, updatedCategory);
+    await categoryService.update(category.id, updatedCategory);
     setEditingCategory(null);
+    fetchCategories();
   };
+
+  const handleRemoveCategory = async (id: string) => {
+    await categoryService.delete(id);
+    fetchCategories();
+  };
+
+  // Function to fetch categories from the API
+  const fetchCategories = async () => {
+    try {
+      const data = await categoryService.getAll();
+      setCategories(data);
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   return (
     <div className="p-6">
@@ -176,7 +203,7 @@ const CategoryManager: React.FC = () => {
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => removeCategory(category.id)}
+                    onClick={() => handleRemoveCategory(category.id)}
                   >
                     Remover
                   </Button>

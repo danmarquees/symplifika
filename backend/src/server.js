@@ -4,8 +4,9 @@ import authRoutes from "./routes/authRoutes.js";
 import openaiRoutes from "./routes/openaiRoutes.js";
 import shortcutRoutes from "./routes/shortcutRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
-import tagRoutes from "./routes/tagRoutes.js"; // Importe a rota de tags
+import tagRoutes from "./routes/tagRoutes.js";
 import syncRoutes from "./routes/syncRoutes.js";
+import statsRoutes from "./routes/statsRoutes.js";
 import * as dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import cookieParser from "cookie-parser";
@@ -13,6 +14,13 @@ import csrf from "csurf";
 import rateLimit from "express-rate-limit";
 import errorHandler from "./middleware/errorHandler.js";
 import firebaseAuthRoutes from "./routes/firebaseAuthRoutes.js";
+import {
+  validateShortcut,
+  validateCategory,
+  validateTag,
+} from "./middleware/validationMiddleware.js";
+import { WebSocketServer } from "ws"; // Import WebSocketServer
+import { verifyToken } from "./middleware/authMiddleware.js";
 
 dotenv.config();
 
@@ -24,7 +32,7 @@ const csrfProtection = csrf({ cookie: true });
 // Configurar CORS para permitir requisições do seu frontend
 app.use(
   cors({
-    origin: "http://localhost:3000", // Substitua pela URL correta do seu frontend
+    origin: "http://localhost:3000",
     credentials: true,
   }),
 );
@@ -48,8 +56,8 @@ app.use("/api/", limiter);
 // Usar as rotas de autenticação
 app.use("/api/auth", authRoutes);
 
-// Rota para obter o token CSRF
-app.get("/api/csrf-token", csrfProtection, (req, res) => {
+// Rota para obter o token CSRF - REMOVA O MIDDLEWARE csrfProtection
+app.get("/api/csrf-token", (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
 
@@ -71,12 +79,61 @@ app.use("/api/sync", csrfProtection, syncRoutes);
 // Usar a rota do Firebase
 app.use("/api/firebaseAuth", firebaseAuthRoutes);
 
+// Usar as rotas de estatísticas
+app.use("/api/stats", statsRoutes);
+
 // Middleware de tratamento de erros global (DEVE SER O ÚLTIMO MIDDLEWARE)
 app.use(errorHandler);
 
-// Iniciar servidor
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
+const server = app.listen(PORT, () =>
+  console.log(`🚀 Servidor rodando na porta ${PORT}`),
+); // Inicia o servidor e guarda a instância
+
+// --- WebSocket Setup ---
+const wss = new WebSocketServer({ server }); // Conecta o WebSocketServer ao servidor HTTP
+
+// Função para autenticar a conexão WebSocket
+const authenticateWebSocket = (ws, req) => {
+  // Extrair o token do header ou da query string
+  const token = req.headers["authorization"]?.split(" ")[1];
+
+  if (!token) {
+    ws.close(4001, "Token ausente");
+    return false;
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      ws.close(4003, "Token inválido");
+      return false;
+    }
+    ws.userId = user.id; // Store user ID
+    return true;
+  });
+};
+
+wss.on("connection", (ws, req) => {
+  // Autenticar a conexão
+  if (!authenticateWebSocket(ws, req)) {
+    return;
+  }
+
+  console.log("Cliente WebSocket conectado!");
+
+  ws.on("message", (message) => {
+    console.log(`Recebido: ${message}`);
+    ws.send(`Mensagem do servidor: ${message}`); // Echo back
+  });
+
+  ws.on("close", () => {
+    console.log("Cliente WebSocket desconectado!");
+  });
+
+  ws.on("error", (error) => {
+    console.error("Erro no WebSocket:", error);
+  });
+});
 
 async function testConnection() {
   try {

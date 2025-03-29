@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 export const syncData = async (req, res) => {
   try {
     const { shortcuts, categories, lastSyncedAt } = req.body;
+    const userId = req.userId;
 
     // Implementar a lógica para criar/atualizar atalhos
     for (const shortcutData of shortcuts) {
@@ -15,12 +16,12 @@ export const syncData = async (req, res) => {
         // Atualizar atalho existente
         await prisma.shortcut.update({
           where: { id: parseInt(id) },
-          data: rest,
+          data: { ...rest, userId: req.userId },
         });
       } else {
         // Criar novo atalho
         await prisma.shortcut.create({
-          data: rest,
+          data: { ...rest, userId: req.userId },
         });
       }
     }
@@ -43,6 +44,13 @@ export const syncData = async (req, res) => {
       }
     }
 
+    // Atualiza a data da última sincronização
+    await prisma.userSync.upsert({
+      where: { userId: req.userId },
+      update: { lastSyncedAt: new Date(lastSyncedAt) },
+      create: { userId: req.userId, lastSyncedAt: new Date(lastSyncedAt) },
+    });
+
     // Lógica de sucesso
     res.json({ message: "Sincronização concluída com sucesso" });
   } catch (error) {
@@ -54,9 +62,11 @@ export const syncData = async (req, res) => {
 // Controller para obter a última data de sincronização
 export const getLastSync = async (req, res) => {
   try {
-    // Substitua isso pela sua lógica real para obter a última data de sincronização
-    const lastSync = new Date().toISOString(); // Por exemplo, armazenada em um banco de dados
-    res.json({ lastSyncedAt: lastSync });
+    const userSync = await prisma.userSync.findUnique({
+      where: { userId: req.userId },
+    });
+    const lastSyncedAt = userSync ? userSync.lastSyncedAt : null;
+    res.json({ lastSyncedAt });
   } catch (error) {
     console.error("Erro ao obter a última data de sincronização:", error);
     res.status(500).json({ message: "Erro ao obter a data" });

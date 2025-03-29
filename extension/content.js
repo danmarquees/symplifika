@@ -83,10 +83,7 @@ async function expandShortcut(text) {
 document.addEventListener("input", async (event) => {
   const target = event.target;
 
-  if (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement
-  ) {
+  if (target.tagName === "TEXTAREA") {
     const originalText = target.value;
     const newText = await expandShortcut(originalText);
 

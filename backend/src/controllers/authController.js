@@ -162,3 +162,28 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ msg: "Erro ao redefinir a senha" });
   }
 };
+
+export const updateProfile = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { name, email, bio } = req.body;
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        name,
+        email,
+        bio,
+      },
+      select: { id: true, name: true, email: true, bio: true },
+    });
+
+    res.json({
+      msg: "Perfil atualizado com sucesso",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Erro ao atualizar o perfil" });
+  }
+};

@@ -29,14 +29,14 @@ export const authService = {
       );
       return response.data;
     } catch (error: any) {
-      console.error(
-        "Erro no login:",
-        error.response?.data?.msg || error.message,
-      );
-      throw new Error(error.response?.data?.msg || "Erro ao fazer login.");
+      console.error("Erro no login:", error);
+      let message = "Erro ao fazer login.";
+      if (error.response && error.response.data && error.response.data.msg) {
+        message = error.response.data.msg;
+      }
+      throw new Error(message);
     }
   },
-
   register: async (userData: RegisterData): Promise<LoginResponse> => {
     try {
       const response = await api.post<LoginResponse>(
@@ -46,15 +46,21 @@ export const authService = {
       return response.data;
     } catch (error: any) {
       console.error("Erro no registro:", error);
-      throw new Error(error.response?.data?.msg || "Erro ao criar conta.");
+      let message = "Erro ao criar a conta.";
+      if (error.response && error.response.data && error.response.data.msg) {
+        message = error.response.data.msg;
+      }
+      throw new Error(message);
     }
   },
-
   logout: async (): Promise<void> => {
-    // API Call de logout (se necessário)
-    await api.post("/auth/logout");
+    try {
+      await api.post("/auth/logout");
+    } catch (error: any) {
+      console.error("Erro no logout:", error);
+      throw new Error("Erro ao fazer logout.");
+    }
   },
-
   getMe: async (): Promise<User> => {
     try {
       const response = await api.get<User>("/auth/me");
@@ -66,7 +72,6 @@ export const authService = {
       );
     }
   },
-
   resetPassword: async (token: string, password: string): Promise<void> => {
     try {
       await api.post(`/auth/reset-password/${token}`, { password });
@@ -75,6 +80,19 @@ export const authService = {
       throw new Error(
         error.response?.data?.msg || "Erro ao redefinir a senha.",
       );
+    }
+  },
+  updateProfile: async (profileData: {
+    name: string;
+    email: string;
+    bio: string;
+  }): Promise<User> => {
+    try {
+      const response = await api.put<User>("/api/auth/profile", profileData);
+      return response.data;
+    } catch (error: any) {
+      console.error("Erro ao atualizar perfil:", error);
+      throw new Error(error.response?.data?.msg || "Erro ao atualizar perfil.");
     }
   },
 };

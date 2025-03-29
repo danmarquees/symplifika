@@ -22,6 +22,7 @@ model User {
   resetPasswordToken   String?
   resetPasswordExpires DateTime?
   Shortcuts            Shortcut[]
+  UserSync             UserSync[]
 }
 
 model Category {
@@ -50,4 +51,10 @@ model Shortcut {
   lastUsedAt DateTime?
   userId     Int?
   user       User?     @relation(fields: [userId], references: [id])
+}
+
+model UserSync {
+  userId       Int       @id
+  lastSyncedAt DateTime?
+  user         User      @relation(fields: [userId], references: [id])
 }
